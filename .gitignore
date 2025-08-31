@@ -1,0 +1,28 @@
+# Ignore Word documents
+*.docx
+
+# Ignore CSV files
+*.csv
+
+# Ignore all PNG images
+*.png
+# Ignore backend dependencies
+backend/node_modules/
+
+# Ignore frontend dependencies
+frontend/node_modules/
+
+# Ignore environment files
+backend/.env
+# Ignore frontend env file
+frontend/src/.env
+
+
+# Ignore VSCode settings
+.vscode/
+
+logic/
+
+.txt
+*.txt
+
