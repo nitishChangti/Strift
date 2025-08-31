@@ -1,6 +1,6 @@
 import React from 'react';
 import { profilePic, myOrders, arrowForward, accSetting, payments, myStuff, logOut } from '../../assets';
-import SideBarNavItem from './SidebarNavItem';
+import SideBarNavItem from './SideBarNavItem.jsx';
 import { Link } from 'react-router-dom';
 import { Logout } from '../index';
 function LeftDashboard() {
