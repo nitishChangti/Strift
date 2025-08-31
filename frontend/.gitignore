@@ -24,5 +24,4 @@ dist-ssr
 *.csv
 node_modules
 *.docx
-*.json
 *.png
