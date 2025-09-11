@@ -120,7 +120,7 @@ const userLogin = asyncHandler(async (req, res, next) => {
                 await req.session.save()
                 console.log(`user mobilenumber is ${req.session.mobileNumber}`)       //here changed
                 const loginOtpSender = await otpSender(user.phone)
-                console.log(loginOtpSender)
+                console.log('otpSender func is called', loginOtpSender)
                 console.log('session', req.session.mobileNumber)
                 // Send a response indicating OTP was sent successfully
                 return res.status(200).json(new ApiResponse(200, '', 'OTP sent successfully', true));
