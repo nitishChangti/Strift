@@ -7,8 +7,7 @@ import { app } from "./app.js";
 dotenv.config({ path: "../.env" });
 
 let isConnected = false;
-
-const handler = async (req, res) => {
+export const handler = async (req, res) => {
     if (!isConnected) {
         try {
             await connectionDB();
@@ -23,5 +22,3 @@ const handler = async (req, res) => {
     const expressHandler = serverless(app);
     return expressHandler(req, res);
 };
-
-export default handler;
