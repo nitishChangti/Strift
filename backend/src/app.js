@@ -4,14 +4,21 @@ const app = express()
 import cors from "cors"
 app.use(cors({
     // origin: process.env.CORS_ORIGIN,
-    origin: 'http://localhost:5173',
-    credentials: true
+    origin: [
+        'http://localhost:5173',
+         'http://localhost:3000',
+        process.env.FRONTEND_URL, // Add this env var in Vercel
+        // Add your production domains here
+    ],
+    credentials: true,
+     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }))
 import cookieParser from "cookie-parser";
 app.use(cookieParser())
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true })) //, limit: "16kb"
-app.use(express.json());
+
 
 // import path from 'path';
 // Serve static files from the 'public' directory
@@ -23,7 +30,8 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        maxAge: 3600000
+        maxAge: 3600000,
+            secure: process.env.NODE_ENV === 'production', // HTTPS in production
     },
 }));
 
@@ -32,7 +40,8 @@ app.get('/', (req, res) => {
     res.json({
         message: "API is running successfully!",
         status: "healthy",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+          environment: process.env.NODE_ENV || 'development'
     });
 });
 
