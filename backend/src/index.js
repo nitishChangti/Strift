@@ -21,4 +21,5 @@ connectionDB()
     })
     .catch((error) => {
         console.log('MONGODB db connection failed !!!', error)
+        process.exit(1);
     })
