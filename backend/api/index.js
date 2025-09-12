@@ -1,18 +1,15 @@
 // api/index.js
-import dotenv from "dotenv";
 import serverless from "serverless-http";
 import connectionDB from "../src/db/index.js";
 import { app } from "../src/app.js";
 
-dotenv.config({ path: ".env" }); // now root .env, not ../.env
+let mongoConnection = null;
 
-let isConnected = false;
-
+// Wrap the serverless handler
 const handler = async (req, res) => {
-    if (!isConnected) {
+    if (!mongoConnection) {
         try {
-            await connectionDB();
-            isConnected = true;
+            mongoConnection = await connectionDB(); // connect once per instance
             console.log("✅ MongoDB connected");
         } catch (err) {
             console.error("❌ DB connection failed:", err);
@@ -20,8 +17,8 @@ const handler = async (req, res) => {
         }
     }
 
-    const expressHandler = serverless(app);
-    return expressHandler(req, res);
+    // Reuse the same expressHandler every time
+    return serverless(app)(req, res);
 };
 
 export default handler;
