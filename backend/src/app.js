@@ -15,7 +15,7 @@ app.use(express.json());
 
 // import path from 'path';
 // Serve static files from the 'public' directory
-app.use(express.static('../public'));
+// app.use(express.static('../public'));
 
 import session from 'express-session';
 app.use(session({
@@ -27,6 +27,15 @@ app.use(session({
     },
 }));
 
+// ADD ROOT ROUTE - This is crucial!
+app.get('/', (req, res) => {
+    res.json({
+        message: "API is running successfully!",
+        status: "healthy",
+        timestamp: new Date().toISOString()
+    });
+});
+
 import UserRouter from './routes/user/user.routes.js';
 app.use("", UserRouter)
 
@@ -35,4 +44,12 @@ app.use("/admin", categoryrouter)
 
 import productrouter from './routes/admin/product.routes.js'
 app.use('/admin', productrouter)
+
+// Handle 404 for unmatched routes
+app.use('*', (req, res) => {
+    res.status(404).json({
+        error: "Route not found",
+        path: req.originalUrl
+    });
+});
 export { app }
