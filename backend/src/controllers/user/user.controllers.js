@@ -25,7 +25,7 @@ import { log } from 'console';
 // ES Module syntax
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import { clearFilters } from '../../../../frontend/src/store/productSlice.js';
+// import { clearFilters } from '../../../../frontend/src/store/productSlice.js';
 
 
 const TemporyData = {

@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import { uploadOnCloudinary, singleUploadOnCloudinary, deleteSingleImageFromCloudinary } from '../../utils/cloudinary.js'
 import { product } from '../../models/product.js'
 import { Category } from "../../models/category.js";
-import { query } from "express";
+// import { query } from "express";
 
 
 const createProduct = asyncHandler(async (req, res) => {
