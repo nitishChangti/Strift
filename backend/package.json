@@ -25,7 +25,7 @@
   "name": "working-on-project",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/api.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon -r dotenv/config src/index.js"
