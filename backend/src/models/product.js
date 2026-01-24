@@ -29,12 +29,12 @@ const productSchema = new Schema(
         },
         subCategoryName: {
             type: String,
-            required: true
+            // required: true
         }
         ,
         subCategoryTagId: {
             type: String,
-            required: true
+            // required: true
         },
         gender: {
             type: String,
@@ -92,14 +92,14 @@ const productSchema = new Schema(
                 type: String,
                 required: true
             }],
-            // color: [{
-            //     type: String,
-            //     required: true
-            // }],
-            stock: {
-                type: Number,
+            color: [{
+                type: String,
                 required: true
-            }
+            }],
+            // stock: {
+            //     type: Number,
+            //     required: true
+            // }
         },
         productDetails: {
             type: Schema.Types.Mixed, // Allows dynamic key-value pairs (flexible structure)

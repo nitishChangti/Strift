@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export class UserProfileService {
-    baseUrl = "http://localhost:3000";
+    baseUrl = import.meta.env.VITE_BASE_URL;
 
     async getUserProfile() {
         try {

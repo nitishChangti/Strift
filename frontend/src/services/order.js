@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export class UserOrderService {
-    baseUrl = 'http://localhost:3000';
+    baseUrl = import.meta.env.VITE_BASE_URL;
     async fetchUserCart() {
         try {
             const response = await axios.get(

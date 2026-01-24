@@ -74,10 +74,11 @@ import {
     checkUserController,
     fetchPendingOrderByUser,
     // searchForProductByUser,
-    searchProductDetail, getSearchSuggestions, getProductByName,
+    searchProductDetail, getSearchSuggestions, 
+    // getProductByName,
 
-    createRazorpayOrder, verifyRazorpayPayment,
-
+    createRazorpayOrder, verifyRazorpayPayment,getAllCategory,getHomeProducts,
+getProducts ,
     myOrders, getOrderDetails
 } from '../../controllers/user/user.controllers.js'
 import { verifyJWT } from '../../middlewares/verifyJwt.js';
@@ -125,6 +126,9 @@ router.get('/admin', authorization('admin'), async (req, res) => {
     res.send('This is a admin place')
 })
 
+
+router.route('/getallcategory').get(getAllCategory);
+
 router.route('/account/profile').post(authorization('user'), userProfile)
 router.route('/account/profile/userData').get(authorization('user'), getUserProfileData)
 
@@ -132,7 +136,10 @@ router.route('/account/profile/address').post(authorization('user'), userProfile
 router.route('/profile/fetchAddress').get(authorization('user'), getUserAddress);
 router.route('/profile/deleteAddress').delete(authorization('user'), delteUserAddress)
 
-router.route('/product/:name').get(getProductByName);
+// router.route('/product/:name').get(getProductByName);
+router.route("/products").get(getProducts);
+
+router.get("/products/home", getHomeProducts);
 
 
 router.route('/suggestions').get(getSearchSuggestions);

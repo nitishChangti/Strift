@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export class UserProductService {
-    baseUrl = 'http://localhost:3000';
+    baseUrl = import.meta.env.VITE_BASE_URL;
     async fetchSuggestionProduct(query) {
         try {
             const response = await axios.get(
@@ -13,18 +13,49 @@ export class UserProductService {
             return []; // fallback to empty array on failure
         }
     }
-
-    async fetchProducts(name) {
-        try {
-            const encodedName = encodeURIComponent(name);
-            const response = await axios.get(`${this.baseUrl}/product/${encodedName}`);
-            return response.data.data;
-        }
-        catch (err) {
-            console.error("Error fetching product:", err);
-            return null;
-        }
+async fetchHomeProducts(limit = 12) {
+    try{
+        const response = await axios.get(`${this.baseUrl}/products/home`, {
+            params: { limit },
+        });
+        return response.data
     }
+    catch(err){
+         console.error("Error fetching product:", err);
+    //         return null;
+    }
+}
+
+    // async fetchProducts(name) {
+    //     try {
+    //         const encodedName = encodeURIComponent(name);
+    //         const response = await axios.get(`${this.baseUrl}/product/${encodedName}`);
+    //         return response.data.data;
+    //     }
+    //     catch (err) {
+    //         console.error("Error fetching product:", err);
+    //         return null;
+    //     }
+    // }
+    async fetchProducts({ search = "", category = "" }) {
+  try {
+    const response = await axios.get(
+      `${this.baseUrl}/products`,
+      {
+        params: {
+          search,
+          category
+        }
+      }
+    );
+
+    return response.data.data;
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    return [];
+  }
+}
+
 
     async fetchProductDetails(id) {
         try {

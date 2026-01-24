@@ -23,14 +23,14 @@ const otpSender = async (phone) => {
         }, { upsert: true, new: true, setDefaultsOnInsert: true })
 
         console.log(` user is requeseted for login : ${userres}`)
-        console.log('phone:', phone, 'TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER)
+        console.log('phone:', phone, 'TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER, 'and otp is',otp)
 
-        const result = await client.messages.create({
-            body: `Your OTP is : ${otp}`,
-            to: phone,
-            from: process.env.TWILIO_PHONE_NUMBER
-        })
-        console.log(' OTP sent successfully: result', result)
+        // const result = await client.messages.create({
+        //     body: `Your OTP is : ${otp}`,
+        //     to: phone,
+        //     from: process.env.TWILIO_PHONE_NUMBER
+        // })
+        // console.log(' OTP sent successfully: result', result)
         return { message: 'otp sent Successfully' }
         // res.status(200).json({ message: 'otp sent Successfully' })
     } catch (error) {

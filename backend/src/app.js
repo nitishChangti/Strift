@@ -54,6 +54,9 @@ app.use("/admin", categoryrouter)
 import productrouter from './routes/admin/product.routes.js'
 app.use('/admin', productrouter)
 
+import adminAuthRoute from './routes/admin/auth.admin.routes.js'
+app.use('/admin',adminAuthRoute)
+
 // Handle 404 for unmatched routes
 app.use('*', (req, res) => {
     res.status(404).json({
