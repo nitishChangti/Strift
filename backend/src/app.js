@@ -7,6 +7,7 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
          'http://localhost:3000',
+           "https://strift-frontend.vercel.app",
         process.env.FRONTEND_URL, // Add this env var in Vercel
         // Add your production domains here
     ],
