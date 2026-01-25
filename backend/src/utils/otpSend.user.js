@@ -1,87 +1,89 @@
-import twilio from 'twilio';
-const client = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-import { User } from '../models/user.models.js';
-import otpGenerator from 'otp-generator';
-// import { message } from 'statuses';
-import { signUpTempData } from '../controllers/user/user.controllers.js';   // imported the var from user.controllers.js
+import twilio from "twilio";
+const client = new twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN,
+);
+import { User } from "../models/user.models.js";
+import otpGenerator from "otp-generator";
+
+const normalizePhone = (phone) => {
+  return phone.startsWith("+") ? phone : `+${phone}`;
+};
+
 const otpSender = async (phone) => {
-    try {
-        console.log(phone)
-        const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
-        console.log(otp, 'here otp is generated')
+  try {
+    const normalizedPhone = normalizePhone(phone);
 
-        const currentTime = new Date();
-        const expirationTime = new Date(currentTime.getTime() + 60000); // 1 minute expiration for otp
-        console.log(`currentTime of otp is ${currentTime} and expirationTime of otp is ${expirationTime}`)
-
-        const userres = await User.findOneAndUpdate({ phone: phone }, {
-            otp: {
-                otpCode: otp,
-                otpGeneratedTime: currentTime,
-                otpExpirationTime: expirationTime
-            }
-        }, { upsert: true, new: true, setDefaultsOnInsert: true })
-
-        console.log(` user is requeseted for login : ${userres}`)
-        console.log('phone:', phone, 'TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER, 'and otp is',otp)
-
-        const result = await client.messages.create({
-            body: `Your OTP is : ${otp}`,
-            to: phone,
-            from: process.env.TWILIO_PHONE_NUMBER
-        })
-        console.log(' OTP sent successfully: result', result)
-        return { message: 'otp sent Successfully' }
-        // res.status(200).json({ message: 'otp sent Successfully' })
-    } catch (error) {
-        // res.status(400).json({
-        //     success: false,
-        //     message: error.message
-        // })
-        console.log(error)
-        return { message: 'otpsending error is occured' }
+    // 🔒 Existing user only
+    const user = await User.findOne({ phone: normalizedPhone });
+    if (!user) {
+      return { success: false, message: "User does not exist" };
     }
-}
 
-const registerOtpSender = async (req, phone) => {
-    try {
-        // console.log(phone)
-        const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
-        console.log(otp, 'here otp is generated')
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+    });
 
-        const currentTime = new Date();
-        const expirationTime = new Date(currentTime.getTime() + 60000); // 1 minute expiration
-        console.log(`currentTime of otp is ${currentTime} and expirationTime of otp is ${expirationTime}`)
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 60 * 1000);
 
+    // ✅ STORE AS ARRAY (SCHEMA COMPATIBLE)
+    user.otp = [
+      {
+        otpCode: otp,
+        otpGeneratedTime: now,
+        otpExpirationTime: expiresAt,
+      },
+    ];
 
-        // req.session.tempOtp = otp;
-        signUpTempData.otp = otp;
-        // req.session.tempOtpGeneratedTime = currentTime;
-        signUpTempData.otpGeneratedTime = currentTime;
-        // req.session.tempOtpExpirationTime = expirationTime;
-        signUpTempData.otpExpirationTime = expirationTime;
-        // await req.session.save();
-        // console.log(req) //req is req
-        // console.log(req.session)
-        console.log(phone, process.env.TWILIO_PHONE_NUMBER)
-        const result = await client.messages.create({
-            body: `Your OTP is : ${otp}`,
-            to: phone,
-            from: process.env.TWILIO_PHONE_NUMBER
-        })
-        console.log(result)
-        return { message: 'otp sent Successfully' }
-        // res.status(200).json({ message: 'otp sent Successfully' })
-    }
-    catch (error) {
-        // res.status(400).json({
-        //     success: false,
-        //     message: error.message
-        // })
-        // return error.message('otpsending error is occured')
-        console.error(`Error sending OTP to ${phone}: ${error.message}`)
-        return { message: `Error sending OTP to ${phone}: ${error.message}` }
-    }
-}
+    await user.save();
+    console.log("OTP SAVED:", user.otp);
+
+    // SMS send can be enabled later
+    // await client.messages.create({ ... });
+
+    return { success: true, message: "OTP sent successfully" };
+  } catch (error) {
+    console.error("OTP Sender Error:", error.message);
+    return { success: false, message: "OTP sending failed" };
+  }
+};
+
+const registerOtpSender = async (phone) => {
+  const normalizedPhone = phone.startsWith("+") ? phone : `+${phone}`;
+
+  // user must NOT exist
+  const existingUser = await User.findOne({ phone: normalizedPhone });
+  if (existingUser) {
+    return { success: false, message: "User already exists" };
+  }
+
+  const otp = otpGenerator.generate(6, {
+    upperCaseAlphabets: false,
+    lowerCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 60 * 1000);
+
+  // create temp user with OTP
+  const user = await User.create({
+    phone: normalizedPhone,
+    otp: [
+      {
+        otpCode: otp,
+        otpGeneratedTime: now,
+        otpExpirationTime: expiresAt,
+      },
+    ],
+  });
+
+  console.log("REGISTER OTP:", otp); // replace with SMS
+
+  return { success: true };
+};
 
 export { otpSender, registerOtpSender };

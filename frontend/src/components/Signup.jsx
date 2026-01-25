@@ -1,178 +1,200 @@
 import React, { useEffect, useState } from 'react';
-import { Container, PhoneInput, Input, Button } from './index.js';
-import { Link } from 'react-router-dom';
+import { PhoneInput, Input, Button } from './index.js';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
-import authService from '../services/auth.js'
-import { useDispatch, useSelector } from 'react-redux';
+import authService from '../services/auth.js';
+import { useDispatch } from 'react-redux';
 import { register as authSignUp } from '../store/authSlice.js';
 
 function Signup() {
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const { register, handleSubmit, control, getValues } = useForm()
-    const [error, setError] = useState(null);
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [otpsent, setOtpSent] = useState(false);
-    const [showMessage, setShowMessage] = useState(false);
-    const [countdown, setCountdown] = useState(60);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-    const handleLogin = async (data) => {
-        try {
-            console.log(data);
-            const api = `account/register?signup=true`
-            if (!otpsent) {
-                setError("");
-                const phone = `+${data.phone}`; // Ensure phone number is in E.164 format
-                const result = await authService.phoneSend({ phone, api })
-                console.log('Response of phone send:', result);
-                console.log(`+${data.phone}`, result.data.user.phone)
-                if (`+${data.phone}` === result.data.user.phone) {
-                    setError("Phone number already exists. Please log in.");
-                    setOtpSent(false)
-                    return;
-                }
-                else {
+  const { handleSubmit, control, register, getValues } = useForm();
 
-                    // const result = true;
-                    if (result) {
-                        // const userData = await authService.getCurrentUser()
-                        // if (userData) {
-                        // dispatch(authLogin(userData));
-                        setOtpSent(true);
-                        setShowMessage(false);
-                        setError("");
-                        // }
-                        console.log('otp is sended to phone number')
-                    }
-                    else {
-                        setError("Failed to send OTP. Please try again.");
-                    }
-                }
-            } else {
-                console.log(' sending otp to backend', data.otp)
-                const result = await authService.verifyOtp({ phone: data.phone, otp: data.otp, api: api });
-                console.log(' Response of otp verify:', result);
-                // const result = true; // Simulating successful login
-                if (result) {
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [loading, setLoading] = useState(false);
 
-                    const userData = await authService.getCurrentUser()
-                    console.log('userdata', userData.user)
-                    if (userData) {
-                        dispatch(authSignUp(userData.user));
-                        setOtpSent(false);
-                        setShowMessage(true);
-                        setError("");
-                        // Redirect to home or dashboard
-                        navigate('/');
-                    }
-                }
-                else {
-                    setError("Invalid OTP. Please try again.");
-                }
-            }
+  const api = 'account/register?signup=true';
+
+  // =========================
+  // SUBMIT HANDLER
+  // =========================
+  const handleSignup = async (data) => {
+    try {
+      setError('');
+      setInfo('');
+      setLoading(true);
+
+      // ---------- SEND OTP ----------
+      if (!otpSent) {
+        const phone = `+${data.phone}`;
+        const result = await authService.phoneSend({ phone, api });
+
+        if (result?.success === true) {
+          setOtpSent(true);
+          setCountdown(60);
+          setInfo('OTP sent to your mobile number');
+        } else {
+          setError(result?.message || 'Failed to send OTP');
         }
-        catch (err) {
-            console.error(err);
-            setError("An error occurred. Please try again later.");
-        }
+        setLoading(false);
+        return;
+      }
+
+      // ---------- VERIFY OTP ----------
+      const result = await authService.verifyOtp({
+        phone: `+${data.phone}`,
+        otp: data.otp,
+        api
+      });
+
+      if (result?.success === true) {
+        dispatch(authSignUp(result.user));
+        navigate('/');
+      } else {
+        setError(result?.message || 'Invalid or expired OTP');
+      }
+
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setError('Something went wrong. Please try again.');
     }
-    const resendOtp = async () => {
-        setError("");
-        try {
-            const phone = getValues('phone');
-            if (!phone) {
-                setError("Please enter your phone number first");
-                return;
-            }
-            const api = `account/register?signup=true`
-            const result = await authService.phoneSend({ phone: `+${phone}`, api });
-            console.log('Response of phone send (resend):', result);
-            if (result) {
-                setError("");
-                setCountdown(60);
-                setOtpSent(true);
-                setShowMessage(false);
-            } else {
-                setError("Failed to resend OTP. Please try again.");
-            }
-        } catch (err) {
-            console.error(err);
-            setError("Failed to resend OTP. Please try again.");
-        }
+  };
+
+  // =========================
+  // RESEND OTP
+  // =========================
+  const resendOtp = async () => {
+    try {
+      const phone = getValues('phone');
+      if (!phone) {
+        setError('Please enter phone number first');
+        return;
+      }
+
+      const result = await authService.phoneSend({
+        phone: `+${phone}`,
+        api
+      });
+
+      if (result?.success === true) {
+        setCountdown(60);
+        setInfo('OTP resent successfully');
+      }
+    } catch {
+      setError('Failed to resend OTP');
     }
+  };
 
-    useEffect(() => {
-        if (otpsent && countdown > 0) {
-            const timer = setInterval(() => {
-                setCountdown((prev) => {
-                    if (prev === 1) clearInterval(timer);
-                    return prev - 1
-                });
-            }, 1000);
-            // setShowMessage(false);
-            return () => {
-                clearInterval(timer);
-            }
-        }
-    }, [otpsent, countdown])
+  // =========================
+  // COUNTDOWN TIMER
+  // =========================
+  useEffect(() => {
+    if (otpSent && countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [otpSent, countdown]);
 
-    return (
-        <div className='w-full h-screen  flex  justify-center pt-20 '>
-            <form onSubmit={handleSubmit(handleLogin)} className=' rounded-xl shadow-2xl/50 w-120 h-120 flex flex-col gap-1  items-center pt-25'>
-                {error && <span className='text-red-500'>{error}</span>}
-                {!otpsent ? (
+  // =========================
+  // UI
+  // =========================
+  return (
+    <div className="min-h-screen flex justify-center bg-gradient-to-br from-gray-100 to-gray-200 pt-5">
+      <form
+        onSubmit={handleSubmit(handleSignup)}
+        className="h-fit w-[380px] bg-white rounded-2xl px-8 py-10"
+        style={{
+          boxShadow:
+            '0 20px 40px rgba(0,0,0,0.15), 0 10px 15px rgba(0,0,0,0.08)'
+        }}
+      >
+        <h2 className="text-2xl font-semibold text-center mb-2">
+          {otpSent ? 'Verify OTP' : 'Create Account'}
+        </h2>
 
-                    <div className='flex flex-col justify-center items-center gap-5'>
-                        <Controller
-                            name="phone"
-                            control={control}
-                            defaultValue=""
-                            rules={{
-                                required: true, pattern: {
-                                    value: /^\+?[1-9]\d{9,14}$/, // Allows + and minimum 10 digits
-                                    message: "Enter a valid international phone number"
-                                },
-                            }}
-                            render={({ field }) => (
-                                <PhoneInput
-                                    // {...register('phone', { required: true })}
-                                    name={field.name}
-                                    value={field.value}
-                                    onChange={(value) => field.onChange(value.replace(/[^\d+]/g, ''))}
-                                    placeholder='Enter your phone number'
-                                    className="w-80 h-10 border rounded px-3 py-2 pl-10 " />
-                            )}
-                        />
-                        <Button type='submit' className='w-80'>Request OTP</Button>
-                        <Link to="/login">
-                            <Button type='submit' className='w-80'>Existing User? Log in</Button>
-                        </Link>
-                    </div>
-                ) : (
-                    <div className='flex flex-col gap-5'>
-                        <Input maxLength={6} className="border w-80 h-10 rounded-sm p-2" name="otp" type='text' placeholder="enter 4 digit  otp" {...register('otp', {
-                            required: true,
-                            pattern: {
-                                value: /^\d{6}$/,
-                                message: "OTP must be exactly 6 digits"
-                            }
-                        })} />
-                        <Button type='submit' className='w-80'>Verify OTP</Button>
-                        <Link to="/login">
-                            <Button type='submit' className='w-80'>Existing User? Log in</Button>
-                        </Link>
-                    </div>
-                )}
-                {
-                    !showMessage && otpsent ? (<span>Not recieved your code? {countdown === 0 ? (<span onClick={resendOtp} className='text-blue-600 cursor-pointer'>Resend OTP</span>) : countdown} </span>) : (
-                        // <span>New to Strift? <Link to="/signup" className='text-blue-400 font-semibold'>Create an account</Link></span>
-                        <></>
-                    )
-                }
-            </form>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          {otpSent
+            ? 'Enter the OTP sent to your phone'
+            : 'Sign up using your mobile number'}
+        </p>
+
+        {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
+        {info && <div className="text-green-600 text-sm mb-3">{info}</div>}
+
+        {!otpSent ? (
+          <>
+            <Controller
+              name="phone"
+              control={control}
+              defaultValue=""
+              rules={{ required: true, pattern: /^\d{10,15}$/ }}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  placeholder="Mobile number"
+                  className="w-full h-11 border border-gray-300 rounded-lg px-3 focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            />
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-6 h-11 rounded-lg"
+            >
+              {loading ? 'Sending OTP…' : 'Request OTP'}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Input
+              maxLength={6}
+              className="w-full h-11 border border-gray-300 rounded-lg px-3 tracking-widest text-center"
+              placeholder="••••••"
+              {...register('otp', { required: true, pattern: /^\d{6}$/ })}
+            />
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-6 h-11 rounded-lg"
+            >
+              {loading ? 'Verifying…' : 'Verify OTP'}
+            </Button>
+          </>
+        )}
+
+        {otpSent && (
+          <div className="text-center text-sm text-gray-600 mt-4">
+            {countdown === 0 ? (
+              <span
+                onClick={resendOtp}
+                className="text-blue-600 cursor-pointer hover:underline"
+              >
+                Resend OTP
+              </span>
+            ) : (
+              <>Resend in {countdown}s</>
+            )}
+          </div>
+        )}
+
+        <div className="text-center mt-6">
+          <Link to="/login" className="text-sm text-blue-600 hover:underline">
+            Existing user? Log in
+          </Link>
         </div>
-    );
+      </form>
+    </div>
+  );
 }
 
 export default Signup;

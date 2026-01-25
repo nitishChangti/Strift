@@ -2,31 +2,19 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { User, Address } from "../../models/user.models.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiRes.js";
-import otpGenerator from "otp-generator";
-import { body, validationResult } from "express-validator";
 import Jwt from "jsonwebtoken";
 import { product } from "../../models/product.js";
 import { Category } from "../../models/category.js";
 import Order from "../../models/order.models.js";
-
-import mongoose, { Schema, mongo } from "mongoose";
-
-import validateMobileNumber from "../../middlewares/validateMobileNumber.middlewares.js";
 import { otpSender, registerOtpSender } from "../../utils/otpSend.user.js";
-import session from "express-session";
 import moment from "moment-timezone";
-import { stat } from "fs";
-
-import { errorMonitor } from "events";
-// import { log } from 'console';
 
 // ES Module syntax
 import Razorpay from "razorpay";
 import crypto from "crypto";
-// import { clearFilters } from '../../../../frontend/src/store/productSlice.js';
 
-const TemporyData = {};
-const signUpTempData = {};
+
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -87,318 +75,153 @@ const checkUserController = asyncHandler(async (req, res) => {
   }
 });
 
-const userLogin = asyncHandler(async (req, res, next) => {
-  // if(req.query==='/'){
-  // take  the user input(mobile number) from req
-  // validate the mobile number
-  //  check if the user exists in the database
-  //  if the user exists, then send the otp  to the user and store in database
-  //  if the user does not exist, then send a message saying user does not exist and render to signup route
-  // }
-  // else{
-  // redirect to /account/register?sigup=TRUE
-  // }
+const normalizePhone = (phone) => {
+  return phone.startsWith("+") ? phone : `+${phone}`;
+};
 
-  console.log(req.query.ret === "/");
+const userLogin = asyncHandler(async (req, res) => {
+  const { phone, otp } = req.body;
+  const normalizedPhone = normalizePhone(phone);
 
-  const ret = req.query.ret === "/";
-  const phone = req.body.phone;
-  console.log("phone", phone);
-  const otp = req.body.otp;
-  console.log(ret);
-  if (ret === true) {
-    if (!otp) {
-      const result = await validateMobileNumber[0].run(req);
-      if (phone.startsWith("+") && result.errors.length === 0) {
-        console.log("validation is success");
-        // return 'done'
-        new ApiResponse(200, "", "phone number is valid", true);
-        // res.status(201).json(new ApiResponse(200, '', 'phone number is valid', true))
-      } else {
-        //             // console.log(false);
-        //             console.log(result.errors);
-        throw new ApiError(400, "mobile number  is invalid ");
-      }
-      const user = await User.findOne({ phone: phone });
-      if (user) {
-        // console.log(user)   if user exists it gives userOtp data
-        console.log("user is exists");
-        TemporyData.mobileNumber = user.phone; /// ---------------------------
-        req.session.mobileNumber = user.phone; //here changed
-        await req.session.save();
-        console.log(`user mobilenumber is ${req.session.mobileNumber}`); //here changed
-        const loginOtpSender = await otpSender(user.phone);
-        console.log("otpSender func is called", loginOtpSender);
-        console.log("session", req.session.mobileNumber);
-        // Send a response indicating OTP was sent successfully
-        return res
-          .status(200)
-          .json(new ApiResponse(200, "", "OTP sent successfully", true));
-      } else {
-        console.log("user doesnot exists");
-        // return res.json({ redirect: '/account?signup=true' });
-        return res
-          .status(404)
-          .json(
-            new ApiResponse(
-              404,
-              "",
-              "User does not exist. Please sign up first",
-              true
-            )
-          );
-        //             // res.redirect('/account/login?signup=true')
-      }
-    } else {
-      console.log("login otp verification section");
-
-      // const phone = req.session.mobileNumber;               //here changed
-      const phone = TemporyData.mobileNumber;
-
-      //         // const userOtpRequestCurrentTime = req.body.currentTime
-      const userOtpRequestCurrentTime = moment(req.body.currentTime).tz("UTC");
-      console.log(otp, userOtpRequestCurrentTime, req.session.mobileNumber); //here changed
-      const user = await User.findOne({ phone: phone });
-
-      console.log(user, user.otp[0].otpCode, "otpcode");
-      if (user) {
-        const otpExpirationTime = moment(user.otp[0].otpExpirationTime).tz(
-          "UTC"
-        ); // assume UTC timezone
-        console.log(otpExpirationTime > userOtpRequestCurrentTime);
-        console.log(otpExpirationTime, "\n", userOtpRequestCurrentTime);
-        if (
-          user.otp[0].otpCode === otp &&
-          otpExpirationTime > userOtpRequestCurrentTime
-        ) {
-          console.log("success");
-          const { accessToken, refreshToken } =
-            await generateAccessAndRefreshTokens(user._id);
-          const loggedInUser = await User.findById(user._id).select(
-            "-refreshToken -otp"
-          );
-          const options = {
-            httpOnly: true,
-            // secure: true,
-            // secure: process.env.NODE_ENV === 'production',
-            secure: false,
-          };
-          if (user.role === "user") {
-            return res
-              .status(200)
-              .cookie("accessToken", accessToken, options)
-              .cookie("refreshToken", refreshToken, options)
-              .json(
-                new ApiResponse(
-                  200,
-                  {
-                    user: user,
-                    accessToken,
-                    refreshToken,
-                  },
-                  "User logged in successfully"
-                )
-              );
-          } else {
-            console.warn('the role is admin')
-            return res
-              .status(200)
-              .cookie("accessToken", accessToken, options)
-              .cookie("refreshToken", refreshToken, options)
-              .json(
-                new ApiResponse(
-                  200,
-                  {
-                    user: user,
-                    accessToken,
-                    refreshToken,
-                  },
-                  "Admin logged in successfully"
-                )
-              );
-          }
-        } else {
-          // throw new ApiError(404, 'Login is not successfull or invalid credentials and otp is expired')
-          return res
-            .status(400)
-            .json(400, "login is not successfull or invalid credentials");
-          // return res.status(200).json(
-          //     new ApiResponse(
-          //         200,
-
-          //     )
-          // )
-        }
-      } else {
-        return res.status(404).json({ error: "User  not found" });
-      }
+  // ============================
+  // STEP 1: SEND OTP
+  // ============================
+  if (!otp) {
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required"
+      });
     }
-  } else {
-    res.json({ redirect: "/account?signup=true" });
+
+    const result = await otpSender(normalizedPhone);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: "User does not exist. Please sign up."
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent successfully"
+    });
   }
+
+  // ============================
+  // STEP 2: VERIFY OTP
+  // ============================
+  const user = await User.findOne({ phone: normalizedPhone });
+
+  if (!user || !user.otp.length) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP not found or user invalid"
+    });
+  }
+
+  const { otpCode, otpExpirationTime } = user.otp[0];
+  const now = new Date();
+
+  if (
+    String(otpCode) !== String(otp) ||
+    otpExpirationTime < now
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid or expired OTP"
+    });
+  }
+
+  // ============================
+  // LOGIN SUCCESS
+  // ============================
+  user.otp = []; // ✅ SAFE CLEAR
+  await user.save();
+
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshTokens(user._id);
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, { httpOnly: true })
+    .cookie("refreshToken", refreshToken, { httpOnly: true })
+    .json(
+      new ApiResponse(
+        200,
+        user,
+        "Login successful",
+        true
+      )
+    );
 });
+
 
 const userRegister = asyncHandler(async (req, res) => {
-  //register controller part start from here
-  console.log("register controller part start from here");
-  console.log(req.query, req.body);
+  const { phone, otp } = req.body;
   const signup = req.query.signup;
-  const phone = req.body.phone;
-  const otp = req.body.otp;
-  if (signup === "true") {
-    if (!otp) {
-      const result = await validateMobileNumber[0].run(req);
-      console.log(result);
-      if (phone.startsWith("+") && result.errors.length === 0) {
-        console.log("validation is success");
-        // res.status(201).json(new ApiResponse(200, '', 'phone number is valid', true))
-        new ApiResponse(200, "", "phone number is valid", true); // this response is not going back to frontend
-      } else {
-        console.log(false);
-        console.log(result.errors);
-        throw new ApiError(500, "mobile number  is invalid "); // this response is not goinh back to frontend
-      }
-      // const user = await UserOtp.findOne({ phone: phone })
-      const user1 = await User.findOne({ phone: phone }); //
-      console.log(user1);
-      if (!user1) {
-        console.log("user  is not exist , new user");
-        // req.session.tempMobileNumber = phone;
-        signUpTempData.phone = phone;
-        // await req.session.save();
-        const regOtpSender = await registerOtpSender(req, phone);
-        console.log(regOtpSender);
-        // console.log('session:-', req.session.tempMobileNumber)
-        console.log("session:-", signUpTempData);
-        return res
-          .status(200)
-          .json(
-            new ApiResponse(
-              200,
-              "",
-              "phone number is valid and user is not exist and otp is sent",
-              true
-            )
-          );
-      } else {
-        console.log("user is already exist");
-        // res.send(400).json(new ApiResponse(400, '', 'user already exists with this mobile number ', false))
-        // res.json({ redirect: '/account?ret=/' })
-        const user = user1;
-        return res
-          .status(200)
-          .json(
-            new ApiResponse(
-              200,
-              { user },
-              "user already exists with this mobile number",
-              false
-            )
-          );
-      }
-    } else {
-      console.log("registration otp verification section");
-      // const phone = req.session.tempMobileNumber;
-      const phone = signUpTempData.phone;
-      const userOtpRequestCurrentTime = moment(req.body.currentTime).tz("UTC");
-      // console.log(userOtpRequestCurrentTime, req.session)          //here changed
-      console.log(userOtpRequestCurrentTime, signUpTempData); //here changed
-      // console.log(otp, req.session.tempOtp)
-      console.log(otp, signUpTempData.otp);
-      // const otpExpirationTime = moment(req.session.tempOtpExpirationTime).tz('UTC'); // assume UTC timezone
-      const otpExpirationTime = moment(signUpTempData.otpExpirationTime).tz(
-        "UTC"
-      ); // assume UTC timezone
-      console.log(otpExpirationTime > userOtpRequestCurrentTime);
-      console.log(otpExpirationTime, "\n", userOtpRequestCurrentTime);
+  console.log(`phone and ${phone} and otp ${otp}`);
+  if (signup !== "true") return;
 
-      // if (req.session.tempOtp === otp && otpExpirationTime > userOtpRequestCurrentTime) {
-      if (
-        signUpTempData.otp === otp &&
-        otpExpirationTime > userOtpRequestCurrentTime
-      ) {
-        console.log("success otp is verified in registration");
-        // req.session.isLoggerIn = true;
-        signUpTempData.isLoggerIn = true;
-        const newUserOtp = await User.create({
-          phone: phone,
-          otp: {
-            otpCode: otp,
-            // otpGeneratedTime: req.session.tempOtpGeneratedTime,
-            // otpExpirationTime: req.session.tempOtpExpirationTime
-            otpGeneratedTime: signUpTempData.otpGeneratedTime,
-            otpExpirationTime: signUpTempData.otpExpirationTime,
-          },
-        });
-
-        const { accessToken, refreshToken } =
-          await generateAccessAndRefreshTokens(newUserOtp._id);
-        const user = await User.findById(newUserOtp._id).select(
-          "-refreshToken -otp"
-        );
-        const options = {
-          httpOnly: true,
-          // secure: true,
-          // secure: process.env.NODE_ENV === 'production',
-          secure: false,
-        };
-        if (user.role === "user") {
-          return res
-            .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
-            .json(
-              new ApiResponse(
-                200,
-                {
-                  user: user,
-                  accessToken,
-                  refreshToken,
-                },
-                "User logged in successfully"
-              )
-            );
-        } else {
-          return res
-            .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
-            .json(
-              new ApiResponse(
-                200,
-                {
-                  user: user,
-                  accessToken,
-                  refreshToken,
-                },
-                "Admin logged in successfully"
-              )
-            );
-        }
-
-        //                 req.session.userId = newUserOtp._id;
-        //                 console.log(newUserOtp)
-
-        return res
-          .status(200)
-          .json(
-            new ApiResponse(
-              200,
-              newUserOtp,
-              "registration is successfull",
-              true
-            )
-          );
-        //                 // res.redirect('/home')
-        // res.json({ redirect: '/home' });
-      } else {
-        res
-          .status(400)
-          .json(404, "registration is not successfull or invalid credentials");
-      }
+  const normalizedPhone = phone.startsWith("+") ? phone : `+${phone}`;
+  console.log('normalizedPhone',phone);
+  // =========================
+  // SEND OTP
+  // =========================
+  if (!otp) {
+    const result = await registerOtpSender(normalizedPhone);
+    console.log(`result`,result);
+    if (!result.success) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists"
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent for registration"
+    });
   }
+
+  // =========================
+  // VERIFY OTP
+  // =========================
+  const user = await User.findOne({ phone: normalizedPhone });
+  console.log('user',user);
+  if (!user || !user.otp.length) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP not found"
+    });
+  }
+
+  const { otpCode, otpExpirationTime } = user.otp[0];
+
+  if (
+    String(otpCode) !== String(otp) ||
+    otpExpirationTime < new Date()
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid or expired OTP"
+    });
+  }
+
+  // =========================
+  // REGISTRATION SUCCESS
+  // =========================
+  user.otp = [];
+  await user.save();
+
+  return res.status(201).json({
+    success: true,
+    message: "Registration successful",
+    user
+  });
 });
+
 
 const UserLogout = asyncHandler(async (req, res) => {
   console.log(1);
@@ -2332,7 +2155,6 @@ export {
   // getProductByName,
   updateWishlist,
   //exporting var
-  signUpTempData,
   placeOrder,
   fetchPendingOrderByUser,
   myOrders,

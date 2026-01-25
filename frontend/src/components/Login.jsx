@@ -23,6 +23,7 @@ function Login() {
             if (!otpsent) {
                 setError("");
                 const phone = `+${data.phone}`;
+                setPhoneNumber(phone)
                 const result = await authService.phoneSend({ phone, api });
                 if (result) {
                     setOtpSent(true);
