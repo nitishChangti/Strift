@@ -30,7 +30,7 @@ function Login() {
         const phone = `+${data.phone}`;
 
         const result = await authService.phoneSend({ phone, api });
-        console.log('Login OTP send response:', result);
+        console.log('Login OTP send res:', result);
 
         if (result?.success === true) {
           setOtpSent(true);
@@ -64,9 +64,9 @@ function Login() {
     }
   };
 
-  // =========================
+  // =====================
   // RESEND OTP
-  // =========================
+  // =====================
   const resendOtp = async () => {
     try {
       setError('');
@@ -93,10 +93,9 @@ function Login() {
       setError('Failed to resend OTP. Please try again.');
     }
   };
-
-  // =========================
+  // =====================
   // COUNTDOWN TIMER
-  // =========================
+  // =====================
   useEffect(() => {
     if (otpSent && countdown > 0) {
       const timer = setInterval(() => {
@@ -106,20 +105,17 @@ function Login() {
       return () => clearInterval(timer);
     }
   }, [otpSent, countdown]);
-
   // =========================
   // UI
   // =========================
   return (
     <div className="w-full min-h-screen flex justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-indigo-600 pt-5 relative overflow-hidden">
-
       {/* Floating background elements */}
       <div className="absolute w-full h-full">
         <div className="absolute bg-white/20 rounded-full w-32 h-32 top-10 left-20 animate-pulse"></div>
         <div className="absolute bg-white/20 rounded-full w-24 h-24 top-48 right-10 animate-pulse"></div>
         <div className="absolute bg-white/10 rounded-full w-40 h-40 bottom-10 left-32 animate-pulse"></div>
       </div>
-
       <form
         onSubmit={handleSubmit(handleLogin)}
         className="h-fit relative z-10 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl w-[380px] max-w-md flex flex-col gap-6 p-10"
@@ -127,13 +123,11 @@ function Login() {
         <h2 className="text-2xl font-semibold text-center">
           {otpSent ? 'Verify OTP' : 'Login'}
         </h2>
-
         {error && (
           <span className="text-red-500 text-sm font-medium text-center">
             {error}
           </span>
         )}
-
         {/* PHONE INPUT */}
         {!otpSent ? (
           <>
