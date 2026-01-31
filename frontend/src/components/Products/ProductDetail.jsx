@@ -16,6 +16,8 @@ import {
 
 } from '../../store/guestUserSlice';
 import userOrderService from '../../services/order';
+import {addPlacedOrder} from '../../store/orderSlice'
+
 const serviceAvaiablePinCode = [
     { pincode: "560001", district: "Bangalore Urban", deliveryAvailable: true, codAvailable: true },
     { pincode: "560002", district: "Bangalore Urban", deliveryAvailable: true, codAvailable: true },
@@ -351,7 +353,9 @@ function ProductDetail() {
             const res = await userOrderService.createOrder(payload);
             console.log(res)
             if (res.success && res.data.savedOrder) {
+                console.log( res.data.savedOrder);
                 const orderId = res.data.savedOrder._id;
+                dispatch(addPlacedOrder(res.data.savedOrder))
                 // Redirect to checkout step2 where user can add/select address
                 navigate(`/order/checkout`);
             } else {

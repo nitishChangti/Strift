@@ -615,7 +615,7 @@ export default function CheckoutPage() {
                                 </div>
                             </>
                         ) : (
-                            // (!changeOrderSummary) && (
+                            (!changeOrderSummary) && (
 
                             <div className="flex justify-between items-center border border-gray-300 p-4 rounded bg-white ">
                                 <div className='flex flex-col gap-2 '>
@@ -646,7 +646,7 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
-                            // )
+                            )
                         )
                     }
                     {
