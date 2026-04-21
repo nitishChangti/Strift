@@ -68,12 +68,12 @@ const otpSender = async (phone) => {
 
     // SMS send can be enabled later
     // await client.messages.create({ ... });
-    // const result = await client.messages.create({
-    //   body: `Your OTP is : ${otp}`,
-    //   to: normalizedPhone,
-    //   from: process.env.TWILIO_PHONE_NUMBER,
-    // });
-    //  console.log("Twilio OTP send result:", result);
+    const result = await client.messages.create({
+      body: `Your OTP is : ${otp}`,
+      to: normalizedPhone,
+      from: process.env.TWILIO_PHONE_NUMBER,
+    });
+     console.log("Twilio OTP send result:", result);
     return { success: true, message: "OTP sent successfully" };
   } catch (error) {
     console.error("OTP Sender Error:", error.message);
