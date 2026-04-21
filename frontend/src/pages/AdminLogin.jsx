@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { PhoneInput, Input, Button } from "../components";
+import { PhoneInput, Input, Button, Logo } from "../components";
 import { useForm, Controller } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import authService from "../services/auth.js";
 import { useDispatch } from "react-redux";
 import { login as authLogin } from "../store/authSlice";
@@ -66,55 +66,71 @@ function AdminLogin() {
   }, [otpSent, countdown]);
 
   return (
-    <div className="w-full h-screen flex justify-center items-start pt-20 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      <form
-        onSubmit={handleSubmit(handleAdminLogin)}
-        className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md flex flex-col gap-5"
-      >
-        <h2 className="text-2xl font-bold text-center">Admin Login</h2>
+    <div className="w-full min-h-screen bg-gray-50">
+      <div className="p-4">
+        <Link to="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+          <Logo />
+        </Link>
+      </div>
+      <div className="flex justify-center items-center py-12 px-4">
+        <form
+          onSubmit={handleSubmit(handleAdminLogin)}
+          className="bg-white p-8 rounded-lg shadow-md w-full max-w-md border border-gray-200"
+        >
+          <h2 className="text-3xl font-bold text-center mb-2 text-gray-900">Admin Login</h2>
+          <p className="text-center text-gray-600 text-sm mb-6">Access your admin dashboard</p>
 
-        {error && <p className="text-red-500 text-center">{error}</p>}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+              {error}
+            </div>
+          )}
 
-        {!otpSent ? (
-          <Controller
-            name="phone"
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <PhoneInput
-                {...field}
-                placeholder="Admin phone number"
-                className="w-full h-12 border rounded px-3"
-              />
-            )}
-          />
-        ) : (
-          <Input
-            maxLength={6}
-            placeholder="Enter OTP"
-            {...register("otp", { required: true })}
-          />
-        )}
+          {!otpSent ? (
+            <Controller
+              name="phone"
+              control={control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  placeholder="Admin phone number"
+                  className="w-full h-12 border pl-16 border-gray-300 rounded px-3 mb-4 focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                />
+              )}
+            />
+          ) : (
+            <Input
+              maxLength={6}
+              placeholder="Enter 6-digit OTP"
+              {...register("otp", { required: true })}
+              className="w-full h-12 border border-gray-300 rounded px-3 mb-4 focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+            />
+          )}
 
-        <Button type="submit" className="bg-black text-white py-2 rounded">
-          {otpSent ? "Verify OTP" : "Request OTP"}
-        </Button>
+          <Button 
+            type="submit" 
+            className="w-full bg-black text-white py-3 rounded font-medium hover:bg-gray-900 transition-all duration-200 active:scale-95"
+          >
+            {otpSent ? "Verify OTP" : "Request OTP"}
+          </Button>
 
-        {otpSent && (
-          <p className="text-center text-sm">
-            {countdown > 0 ? (
-              `Resend OTP in ${countdown}s`
-            ) : (
-              <span
-                className="text-blue-500 cursor-pointer"
-                onClick={resendOtp}
-              >
-                Resend OTP
-              </span>
-            )}
-          </p>
-        )}
-      </form>
+          {otpSent && (
+            <p className="text-center text-sm text-gray-600 mt-4">
+              {countdown > 0 ? (
+                `Resend OTP in ${countdown}s`
+              ) : (
+                <span
+                  className="text-black cursor-pointer font-medium hover:underline"
+                  onClick={resendOtp}
+                >
+                  Resend OTP
+                </span>
+              )}
+            </p>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

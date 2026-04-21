@@ -76,61 +76,53 @@ const AdminCreateProduct = () => {
   };
 
   /* ================= SUBMIT ================= */
-  const onSubmit = async (data) => {
-    try {
-      const formData = new FormData();
+ const onSubmit = async (data) => {
+  try {
+    const formData = new FormData();
 
-      /* ===== BASIC ===== */
-      formData.append("productName", data.name);
-      formData.append("description", data.description);
-      formData.append("TagId", data.TagId);
+    formData.append("productName", data.name);
+    formData.append("description", data.description);
+    formData.append("TagId", data.TagId);
+    formData.append("CategoryTagId", data.CategoryTagId);
 
-      /* ===== CATEGORY ===== */
-      formData.append("category", data.CategoryName);
-      formData.append("subCategory", data.subCategoryName || "");
+    formData.append("category", data.CategoryName);
+    formData.append("subCategory", data.subCategoryName || "");
 
-      /* ===== PRICING / INVENTORY ===== */
-      formData.append("gender", data.gender);
-      formData.append("price", data.price);
-      formData.append("discount", data.discount);
-      formData.append("countInStock", data.stock);
+    formData.append("gender", data.gender);
+    formData.append("price", data.price);
+    formData.append("discount", data.discount);
+    formData.append("countInStock", data.stock);
 
-      /* ===== VARIANTS ===== */
-      const sizesArray = data.sizes
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+    const sizesArray = data.sizes.split(",").map(s => s.trim()).filter(Boolean);
+    const colorsArray = data.colors.split(",").map(c => c.trim()).filter(Boolean);
 
-      const colorsArray = data.colors
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean);
+    formData.append("selectedSizes", JSON.stringify(sizesArray));
+    formData.append("selectedColors", JSON.stringify(colorsArray));
 
-      formData.append("selectedSizes", JSON.stringify(sizesArray));
-      formData.append("selectedColors", JSON.stringify(colorsArray));
+    // ✅ FIXED PRODUCT DETAILS
+    const detailsObject = data.productDetails
+      .filter((d) => d.key && d.value)
+      .reduce((acc, curr) => {
+        acc[curr.key] = curr.value;
+        return acc;
+      }, {});
 
-      /* ===== PRODUCT DETAILS ===== */
-      const detailsString = data.productDetails
-        .filter((d) => d.key && d.value)
-        .map((d) => `${d.key}: ${d.value}`)
-        .join("\n");
-
-      if (detailsString) {
-        formData.append("productDetails", detailsString);
-      }
-
-      /* ===== IMAGES ===== */
-      formData.append("image", data.image[0]);
-      Array.from(data.images).forEach((img) =>
-        formData.append("images", img)
-      );
-
-      await productService.createProduct(formData);
-      navigate("/admin/products");
-    } catch (err) {
-      console.error("Create product failed", err);
+    if (Object.keys(detailsObject).length > 0) {
+      formData.append("productDetails", JSON.stringify(detailsObject));
     }
-  };
+
+    formData.append("image", data.image[0]);
+    Array.from(data.images).forEach((img) =>
+      formData.append("images", img)
+    );
+
+    await productService.createProduct(formData);
+    navigate("/admin/products");
+  } catch (err) {
+    console.error("Create product failed", err);
+  }
+};
+
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

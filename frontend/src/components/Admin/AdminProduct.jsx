@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import productService from "../../services/admin/products.js";
-
+import { useNavigate } from "react-router-dom";
 const AdminProduct = () => {
   const ITEMS_PER_PAGE = 10;
-
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -11,7 +11,7 @@ const AdminProduct = () => {
 
   const [showView, setShowView] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+console.log(selectedProduct);
   const skip = (page - 1) * ITEMS_PER_PAGE;
 
   const fetchProducts = async () => {
@@ -42,6 +42,12 @@ const AdminProduct = () => {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Products Management</h2>
+          <button 
+            onClick={() => navigate('/admin/products/create')}
+            className="bg-black text-white px-4 py-2 rounded text-sm font-medium border border-gray-700 hover:bg-gray-900 active:scale-95 transition-all"
+          >
+            Create Product
+          </button>
         </div>
 
         {/* TABLE */}
@@ -113,7 +119,7 @@ const AdminProduct = () => {
             <img
               src={selectedProduct.image}
               alt={selectedProduct.name}
-              className="w-full h-56 object-contain border rounded mb-4"
+              className="w-full h-56 object-cover  rounded mb-4"
             />
 
             {/* GALLERY */}
@@ -122,7 +128,7 @@ const AdminProduct = () => {
                 <img
                   key={i}
                   src={img}
-                  className="h-16 w-full object-cover border rounded"
+                  className="h-16 w-full object-cover  rounded"
                 />
               ))}
             </div>
@@ -171,29 +177,25 @@ const AdminProduct = () => {
               <div>
                 <p className="font-medium mb-2">Product Details</p>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  {selectedProduct.productDetails &&
-                    typeof selectedProduct.productDetails === "object" && (
-                      <div>
-                        <p className="font-medium mb-2">Product Details</p>
-
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                          {Object.entries(selectedProduct.productDetails).map(
-                            ([key, value]) => (
-                              <div key={key} className="flex gap-2">
-                                <span className="font-medium capitalize">
-                                  {key.replace(/_/g, " ")}
-                                </span>
-                                <span className="text-gray-600">
-                                  {String(value)}
-                                </span>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                </div>
+                {selectedProduct.productDetails &&
+                  typeof selectedProduct.productDetails === "object" && (
+                    <table className="w-full text-sm border border-gray-300">
+                      <tbody>
+                        {Object.entries(selectedProduct.productDetails).map(
+                          ([key, value]) => (
+                            <tr key={key} className="border-b border-gray-300">
+                              <td className="p-2 font-medium capitalize bg-gray-50 border-r border-gray-300">
+                                {key.replace(/_/g, " ")}
+                              </td>
+                              <td className="p-2 text-gray-700">
+                                {String(value)}
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  )}
               </div>
             )}
           </div>

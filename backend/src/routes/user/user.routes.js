@@ -3,51 +3,51 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import session from 'express-session';
 
-import path from 'path';
-import { fileURLToPath } from 'url';
+// import path from 'path';
+// import { fileURLToPath } from 'url';
 
 const router = express.Router();
 
 // Define __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
-router.use(express.static(path.join(__dirname, '../../../public/user/home')));
+// router.use(express.static(path.join(__dirname, '../../../public/user/home')));
 
-router.use(express.static(path.join(__dirname, '../../../public/user/home/header.html')));
+// router.use(express.static(path.join(__dirname, '../../../public/user/home/header.html')));
 // import srsds from '../../../public/user/home';
 
-router.use(express.static(path.join(__dirname, '../../../public/user/products')));
-router.use(express.static(path.join(__dirname, '../../../public/user/home/header.html')));
-router.use(express.static(path.join(__dirname, '../../../public')));
-router.use('/home', express.static(path.join(__dirname, '../../../public/user/home')));
-router.use('/products', express.static(path.join(__dirname, '../../../public/user/products')));
+// router.use(express.static(path.join(__dirname, '../../../public/user/products')));
+// router.use(express.static(path.join(__dirname, '../../../public/user/home/header.html')));
+// router.use(express.static(path.join(__dirname, '../../../public')));
+// router.use('/home', express.static(path.join(__dirname, '../../../public/user/home')));
+// router.use('/products', express.static(path.join(__dirname, '../../../public/user/products')));
 
 
 // Serve header.html file
-router.get('/header', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/user/home/header.html'));
-});
-router.get('/footer', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/user/home/footer.html'));
-});
+// router.get('/header', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../../../public/user/home/header.html'));
+// });
+// router.get('/footer', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../../../public/user/home/footer.html'));
+// });
 
 // router.use(express.statrouter.use('/imgs', express.static(path.join(__dirname, 'public/user/home/imgs')));
 
 
 
 // Serve the home page
-router.get('/home', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/user/home/index.html'));
-});
+// router.get('/home', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../../../public/user/home/index.html'));
+// });
 
-router.use(express.static(path.join(__dirname, '../../../public/user/loginAndRegister')));
+// router.use(express.static(path.join(__dirname, '../../../public/user/loginAndRegister')));
 // router.use(express.static(path.join(__dirname, '../../public/user/loginAndRegister/images')));
 
 // serve the login and register page
-router.get('/account', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../public/user/loginAndRegister/index.html'));
-})
+// router.get('/account', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../../../public/user/loginAndRegister/index.html'));
+// })
 
 import validateMobileNumber from '../../middlewares/validateMobileNumber.middlewares.js'
 import {
@@ -83,13 +83,16 @@ getProducts ,
 } from '../../controllers/user/user.controllers.js'
 import { verifyJWT } from '../../middlewares/verifyJwt.js';
 import { authorization } from '../../middlewares/roleAuth.js';
-router.use(express.static(path.join(__dirname, '../../../public/user/profile')));
+
+
+
+// router.use(express.static(path.join(__dirname, '../../../public/user/profile')));
 // import { verifyJWT } from '../../../public/user/home';
 
-router.get('/account/profile', (req, res) => {
-    // res.send('hello')
-    res.sendFile(path.join(__dirname, '../../../public/user/profile/profile.html'));
-})
+// router.get('/account/profile', (req, res) => {
+//     // res.send('hello')
+//     res.sendFile(path.join(__dirname, '../../../public/user/profile/profile.html'));
+// })
 router.route('/account/login').post(validateMobileNumber, userLogin);
 
 router.route('/account/getCurrentUser').get(verifyJWT, async (req, res) => {

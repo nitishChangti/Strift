@@ -10,11 +10,20 @@ function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { register, handleSubmit, control, getValues } = useForm();
+  const {
+    register,
+    handleSubmit,
+    control,
+    getValues,
+    setFocus,
+    formState: { errors }
+  } = useForm();
 
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [loading, setLoading] = useState(false);
 
   const api = 'account/login?ret=/';
 
@@ -24,6 +33,8 @@ function Login() {
   const handleLogin = async (data) => {
     try {
       setError('');
+      setInfo('');
+      setLoading(true);
 
       // ---------- STEP 1: SEND OTP ----------
       if (!otpSent) {
@@ -35,9 +46,12 @@ function Login() {
         if (result?.success === true) {
           setOtpSent(true);
           setCountdown(60);
+          setInfo(`OTP sent to ${phone}`);
+          setTimeout(() => setFocus('otp'), 0);
         } else {
           setError(result?.message || 'Failed to send OTP');
         }
+        setLoading(false);
         return;
       }
 
@@ -51,16 +65,19 @@ function Login() {
       console.log('Login OTP verify response:', result);
 
       if (result?.success === true) {
-        // ✅ USE USER FROM verifyOtp RESPONSE
-        dispatch(authLogin(result.user));
+        const loggedInUser = result?.data?.user ?? result?.user;
+        dispatch(authLogin(loggedInUser));
         navigate('/');
       } else {
         setError(result?.message || 'Invalid or expired OTP');
       }
-
+      setLoading(false);
     } catch (err) {
       console.error(err);
-      setError('Something went wrong. Please try again.');
+      setLoading(false);
+      setError(
+        err?.response?.data?.message || 'Something went wrong. Please try again.'
+      );
     }
   };
 
@@ -70,10 +87,13 @@ function Login() {
   const resendOtp = async () => {
     try {
       setError('');
+      setInfo('');
+      setLoading(true);
       const phone = getValues('phone');
 
       if (!phone) {
         setError('Please enter your phone number first');
+        setLoading(false);
         return;
       }
 
@@ -85,14 +105,28 @@ function Login() {
       if (result?.success === true) {
         setCountdown(60);
         setOtpSent(true);
+        setInfo(`OTP resent to +${phone}`);
       } else {
         setError(result?.message || 'Failed to resend OTP');
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to resend OTP. Please try again.');
+      setError(
+        err?.response?.data?.message || 'Failed to resend OTP. Please try again.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleChangeNumber = () => {
+    setOtpSent(false);
+    setCountdown(60);
+    setError('');
+    setInfo('');
+    setTimeout(() => setFocus('phone'), 0);
+  };
+
   // =====================
   // COUNTDOWN TIMER
   // =====================
@@ -123,9 +157,19 @@ function Login() {
         <h2 className="text-2xl font-semibold text-center">
           {otpSent ? 'Verify OTP' : 'Login'}
         </h2>
+        <p className="text-center text-sm text-gray-600">
+          {otpSent
+            ? 'Enter the 6-digit code we sent to your number'
+            : 'Use your mobile number to receive a one-time code'}
+        </p>
         {error && (
-          <span className="text-red-500 text-sm font-medium text-center">
+          <span className="rounded-lg bg-red-50 px-3 py-2 text-red-600 text-sm font-medium text-center">
             {error}
+          </span>
+        )}
+        {info && (
+          <span className="rounded-lg bg-green-50 px-3 py-2 text-green-700 text-sm font-medium text-center">
+            {info}
           </span>
         )}
         {/* PHONE INPUT */}
@@ -143,17 +187,35 @@ function Login() {
                 <PhoneInput
                   {...field}
                   placeholder="Enter your phone number"
-                  className="w-full h-12 border rounded-lg px-3 focus:ring-2 focus:ring-pink-400"
+                  className="w-full h-12 border rounded-lg px-10 pl-16 focus:ring-2 focus:ring-pink-400"
                 />
               )}
             />
+            {errors.phone && (
+              <span className="text-sm text-red-500 -mt-3">
+                Enter a valid phone number.
+              </span>
+            )}
 
-            <Button type="submit" className="w-full">
-              Request OTP
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Sending OTP...' : 'Request OTP'}
             </Button>
           </>
         ) : (
           <>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <div className="font-medium text-gray-900">Phone number</div>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <span>+{getValues('phone')}</span>
+                <button
+                  type="button"
+                  onClick={handleChangeNumber}
+                  className="text-blue-600 hover:underline"
+                >
+                  Change
+                </button>
+              </div>
+            </div>
             <Input
               maxLength={6}
               className="w-full h-12 border rounded-lg px-3 text-center tracking-widest focus:ring-2 focus:ring-purple-400"
@@ -163,9 +225,14 @@ function Login() {
                 pattern: /^\d{6}$/
               })}
             />
+            {errors.otp && (
+              <span className="text-sm text-red-500 -mt-3">
+                Enter a valid 6-digit OTP.
+              </span>
+            )}
 
-            <Button type="submit" className="w-full">
-              Verify OTP
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Verifying...' : 'Verify OTP'}
             </Button>
           </>
         )}
@@ -174,12 +241,14 @@ function Login() {
         {otpSent && (
           <div className="text-center text-sm text-gray-700">
             {countdown === 0 ? (
-              <span
+              <button
+                type="button"
                 onClick={resendOtp}
-                className="text-blue-600 cursor-pointer hover:underline"
+                disabled={loading}
+                className="text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 Resend OTP
-              </span>
+              </button>
             ) : (
               <>Resend in {countdown}s</>
             )}

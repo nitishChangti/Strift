@@ -130,6 +130,12 @@ const userSchema = new Schema({
         trim: true,
         default: "unknown"
     },
+    name: {
+        type: String,
+        lowercase: true,
+        trim: true,
+        default: ""
+    },
     email: {
         type: String,
         required: true,
@@ -191,6 +197,10 @@ const userSchema = new Schema({
         lowercase: true,
         trim: true,
         default: "user"
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     },
     refreshToken: {
         type: String,    //cloudinary url
@@ -278,68 +288,38 @@ const userSchema = new Schema({
         }
     ],
     cart: [
-        {
-            productId: {
-                type: Schema.Types.ObjectId,
-                ref: 'product',
-                required: true,
-            },
-            productName: {
-                type: String,
-                required: true,
-                trim: true,
-                default: ""
-            },
-            price: {
-                type: Number,
-                required: true,
-                default: 0
-            },
-            discount: {
-                type: String,
-                required: false,
-                default: ""
-            },
-            size: {
-                type: String,
-                required: false,
-                trim: true,
-                default: ""
-            },
-            color: {
-                type: String,
-                required: false,
-                trim: true,
-                default: ""
-            },
-            TagId: {
-                type: String,  // store as string if it's a code, not an ObjectId
-                required: false,
-                trim: true,
-                default: ''
-            },
-            quantity: {
-                type: Number,
-                required: true,
-                default: 1
-            },
-            image: {
-                type: String,
-                required: false,
-                trim: true,
-                default: ""
-            },
-            expectedDelivery: {
-                type: Date,   // ✅ New field
-                required: false,
-                default: null
-            },
-            addedAt: {
-                type: Date,
-                default: Date.now
-            }
-        }
-    ],
+  {
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: 'product',
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 1
+    },
+    size: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    color: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    expectedDelivery: {
+      type: Date,
+      default: null
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }
+],
+
     // wishlist field also need
     wishlist: [
         // {

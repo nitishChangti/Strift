@@ -9,6 +9,10 @@ import userProductService from "../../services/userProduct";
 import { setList, setQuery, setSelected } from "../../store/productSlice";
 
 function Products() {
+  const user = useSelector((state) => state.auth.userData);
+  console.log(user);
+  const isAuthenticated = useSelector((state) => state.auth.status);
+
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -16,145 +20,116 @@ function Products() {
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState([]);
 
-  // 🔹 URL params
   const searchQuery = searchParams.get("search") || "";
-  const category = searchParams.get("category"); // TS, HD, JN, KD
+  const category = searchParams.get("category");
+  const categoryName = searchParams.get("categoryName") || "";
 
-  // 🔹 Redux state
   const products = useSelector((state) => state.product.filteredList);
-  const selectedFilters = useSelector((state) => state.product.selectedFilters);
 
-  // 🔥 FETCH PRODUCTS (SEARCH OR CATEGORY)
+  // Fetch products
   useEffect(() => {
-    if (!searchQuery && !category) return;
+    if (!searchQuery && !category && !categoryName) return;
 
-    const fetchProducts = async () => {
+    (async () => {
       try {
         const res = await userProductService.fetchProducts({
           search: searchQuery,
           category,
+          categoryName,
         });
-
         dispatch(setList(res.productData || []));
         dispatch(setQuery(searchQuery));
         dispatch(setSelected(res.productData?.[0] || null));
-      } catch (err) {
-        console.error("Failed to fetch products", err);
+      } catch {
         dispatch(setList([]));
         dispatch(setSelected(null));
       }
-    };
+    })();
+  }, [searchQuery, category, categoryName, dispatch]);
 
-    fetchProducts();
-  }, [searchQuery, category, dispatch]);
+  // Load wishlist & cart on mount/auth change
+ useEffect(() => {
+  if (!isAuthenticated) {
+    // 👤 Guest → localStorage
+    setWishlist(JSON.parse(localStorage.getItem("wishlist") || "[]"));
+    setCart(JSON.parse(localStorage.getItem("cart") || "[]"));
+  } else {
+    // 🔐 Logged-in → Redux user is source of truth
+    setWishlist(user?.wishlist || []);
+    setCart(user?.cart || []);
+  }
+}, [isAuthenticated, user]);
 
+  // Wishlist toggle
+  const toggleWishlist = async (productId) => {
+    if (!isAuthenticated) {
+      const local = JSON.parse(localStorage.getItem("wishlist") || "[]");
+      const updated = local.includes(productId)
+        ? local.filter((id) => id !== productId)
+        : [...local, productId];
+      localStorage.setItem("wishlist", JSON.stringify(updated));
+      setWishlist(updated);
+      return;
+    }
+    const res = await userProductService.addToWishlist(productId);
+    setWishlist(res.wishlist || []);
+  };
+
+  // Add to cart
+  const addToCart = async (product) => {
+    if (!isAuthenticated) {
+      console.log('user not loggedIm',isAuthenticated);
+      const local = JSON.parse(localStorage.getItem("cart") || "[]");
+      const idx = local.findIndex((i) => i.productId === product._id);
+      if (idx > -1) local[idx].quantity += 1;
+      else
+        local.push({
+          productId: product._id,
+          quantity: 1,
+          price: product.price,
+          name: product.name,
+          image: product.image,
+        });
+      localStorage.setItem("cart", JSON.stringify(local));
+      setCart(local);
+      return;
+    }
+    console.log('user loggedIn');
+    const res = await userProductService.addToCart({
+      productId: product._id,
+      quantity: 1,
+      size: "",
+      color: "",
+    });
+    console.log('res',res);
+    setCart(res.data.cart || []);
+  };
   // 🔹 Handlers
   const handleProductClick = (product) => {
     navigate(`/product/${product._id}`);
   };
-
-  const toggleWishlist = (productId) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
-  const addToCart = (product) => {
-    setCart((prev) => {
-      if (prev.find((p) => p._id === product._id)) return prev;
-      return [...prev, { ...product, quantity: 1 }];
-    });
-    alert(`${product.name} added to cart!`);
-  };
-
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <div className="w-full md:w-64 border-r hidden md:block sticky top-0 h-screen bg-white z-10 shadow-md">
         <FilterSidebar />
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 p-4">
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-wide">
-            Products
-          </h1>
-
-          {(searchQuery || category) && (
-            <p className="text-gray-600 text-sm md:text-base mt-1">
-              Showing results
-              {searchQuery && (
-                <>
-                  {" "}for <span className="font-medium">{searchQuery}</span>
-                </>
-              )}
-              {category && (
-                <>
-                  {" "}in <span className="font-medium">{category}</span>
-                </>
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Applied Filters */}
-        {Object.keys(selectedFilters).length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {Object.entries(selectedFilters).map(([key, values]) =>
-              Array.isArray(values)
-                ? values.map((v) => (
-                    <span
-                      key={`${key}-${v}`}
-                      className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full shadow-sm"
-                    >
-                      {key}: {v}
-                    </span>
-                  ))
-                : values && (
-                    <span
-                      key={key}
-                      className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full shadow-sm"
-                    >
-                      {key}
-                    </span>
-                  )
-            )}
+        {(searchQuery || categoryName) && (
+          <div className="mb-4 text-sm text-gray-600">
+            {searchQuery && <span>Search: {searchQuery}</span>}
+            {!searchQuery && categoryName && <span>Category: {categoryName}</span>}
           </div>
         )}
-
-        {/* No Products */}
-        {products.length === 0 && (
-          <p className="text-center text-gray-500 mt-20 text-lg">
-            No products found.
-          </p>
-        )}
-
-        {/* Product Grid */}
         <AnimatePresence>
-          <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-          >
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => {
               const isWishlisted = wishlist.includes(product._id);
-              const inCart = cart.find((p) => p._id === product._id);
+              const inCart = cart.some((p) => p.productId === product._id);
+              const isOutOfStock = Number(product.stock) <= 0;
 
               return (
-                <motion.div
-                  key={product._id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="border rounded-lg shadow-sm p-3 bg-white cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all relative"
-                  onClick={() => handleProductClick(product)}
-                >
-                  {/* Wishlist */}
+                <motion.div key={product._id} className="border rounded-lg shadow-sm p-3 bg-white relative">
                   <div
                     className="absolute top-2 right-2 text-red-500 text-xl z-10"
                     onClick={(e) => {
@@ -165,40 +140,40 @@ function Products() {
                     {isWishlisted ? <AiFillHeart /> : <AiOutlineHeart />}
                   </div>
 
-                  {/* Image */}
-                  <div className="overflow-hidden rounded-md">
-                    <motion.img
-                      whileHover={{ scale: 1.05 }}
-                      src={product.image || "/placeholder.png"}
-                      alt={product.name}
-                      className="w-full h-40 object-cover rounded-md mb-3"
-                    />
-                  </div>
+                  <img
+                    src={product.image}
+                    className="w-full h-40 object-cover rounded-md mb-3"
+                    onClick={() => handleProductClick(product)}
+                  />
 
-                  {/* Details */}
-                  <h3 className="text-lg font-semibold truncate">
-                    {product.name}
-                  </h3>
-                  <p className="font-bold mt-2 text-blue-600">
-                    ₹{product.price}
+                  <h3 className="font-semibold truncate">{product.name}</h3>
+                  <p className="font-bold text-blue-600">₹{product.price}</p>
+
+                  <p className={`mt-1 text-sm font-medium ${isOutOfStock ? "text-red-600" : "text-black"}`}>
+                    {isOutOfStock ? "Out of Stock" : "In Stock"}
                   </p>
 
-                  {/* Add to Cart */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart(product);
-                    }}
-                    className="mt-2 w-full flex items-center justify-center gap-2 py-1 px-2 bg-green-500 text-white font-semibold rounded hover:bg-green-600 transition"
+                    disabled={isOutOfStock}
+                    onClick={() => addToCart(product)}
+                    className={`mt-2 w-full flex items-center justify-center gap-2 py-1 rounded ${isOutOfStock
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-green-500 text-white"
+                      }`}
                   >
                     <BsCartPlus />
-                    {inCart ? "Added" : "Add to Cart"}
+                    {isOutOfStock ? "Out of Stock" : inCart ? "Added" : "Add to Cart"}
                   </button>
                 </motion.div>
               );
             })}
           </motion.div>
         </AnimatePresence>
+        {products.length === 0 && (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600">
+            No products found for this category yet.
+          </div>
+        )}
       </div>
     </div>
   );

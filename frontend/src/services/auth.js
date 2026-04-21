@@ -108,6 +108,22 @@ export class AuthService {
     return res.data;
   }
 
+  // Admin Logout
+  async adminLogout() {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/admin/logout`,
+        {
+          withCredentials: true, // required to send cookies with request
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error logging out:", error);
+      throw error;
+    }
+  }
+
   // Get all categories (Admin)
   async getAllCategories() {
     try {

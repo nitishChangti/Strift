@@ -71,7 +71,7 @@ function ProductDetail() {
     const [pincodeStatus, setPincodeStatus] = useState(null);
 
     // Suppose you already have:
-    const totalStock = product?.variants?.stock || 0;
+    const totalStock = Number(product?.stock || 0);
     const [expectedDelivery, setExpectedDelivery] = useState(null);
     const [latestAddress, setLatestAddress] = useState(null); // currently selected address
     const [showAddresses, setShowAddresses] = useState(false); // dropdown toggle
@@ -600,12 +600,7 @@ function ProductDetail() {
                         </div>
                         <div className="mb-2">
                             <span
-                                className={`text-sm font-medium ${totalStock === 0
-                                    ? "text-red-600"
-                                    : totalStock <= 10
-                                        ? "text-orange-600"
-                                        : "text-green-700"
-                                    }`}
+                                className={`text-sm font-medium ${totalStock === 0 ? "text-red-600" : "text-black"}`}
                             >
                                 {stockStatus}
                             </span>
@@ -640,9 +635,13 @@ function ProductDetail() {
                         <button
                             type="button"
                             onClick={handleOrderNow}  // ✅ new handler
-                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded shadow transition"
+                            disabled={totalStock === 0}
+                            className={`flex-1 font-semibold py-2 rounded shadow transition ${totalStock === 0
+                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                : "bg-orange-500 hover:bg-orange-600 text-white"
+                                }`}
                         >
-                            Buy Now
+                            {totalStock === 0 ? "Out of Stock" : "Buy Now"}
                         </button>
 
                     </div>

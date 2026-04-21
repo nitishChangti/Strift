@@ -58,6 +58,12 @@ app.use('/admin', productrouter)
 import adminAuthRoute from './routes/admin/auth.admin.routes.js'
 app.use('/admin',adminAuthRoute)
 
+import orderRouter from './routes/admin/order.routes.js'
+app.use('/admin', orderRouter)
+
+import userRouter from './routes/admin/user.routes.js'
+app.use('/admin', userRouter)
+
 // Handle 404 for unmatched routes
 app.use('*', (req, res) => {
     res.status(404).json({

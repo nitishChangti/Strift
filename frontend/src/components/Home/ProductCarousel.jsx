@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
-
+import { useNavigate } from "react-router-dom";
 export default function ProductCarousel({ products }) {
     const containerRef = useRef(null);
     const [scrollPosition, setScrollPosition] = useState(0);
-
+  const navigate = useNavigate();
     const scrollDistance = 300; // Scroll 300px per click
 
     const scrollLeft = () => {
@@ -43,8 +43,9 @@ export default function ProductCarousel({ products }) {
             >
                 {products.map((product, index) => (
                     <div
-                        key={index}
-                        className="flex-shrink-0 w-58 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                    onClick={()=>navigate(`/product/${product._id}`)}
+                    key={index}
+                    className="flex-shrink-0 w-58 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                     >
                         {/* Image Container */}
                         <div className="overflow-hidden rounded-t-lg transform transition-transform duration-300 hover:scale-105">

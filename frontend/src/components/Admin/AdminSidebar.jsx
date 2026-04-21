@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import authService from "../../services/auth.js";
 
 const SidebarItem = ({ to, label, end = false, indent = false }) => (
   <NavLink
@@ -23,11 +24,19 @@ const SidebarItem = ({ to, label, end = false, indent = false }) => (
 const AdminSidebar = () => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin");
-
-    navigate("/admin/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await authService.adminLogout();
+      localStorage.removeItem("token");
+      localStorage.removeItem("admin");
+      navigate("/admin/login", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Clear local storage and redirect even if API call fails
+      localStorage.removeItem("token");
+      localStorage.removeItem("admin");
+      navigate("/admin/login", { replace: true });
+    }
   };
 
   return (

@@ -21,8 +21,12 @@ export default function CategorySection() {
     fetchCategories();
   }, []);
 
-  const handleCategoryClick = (tagId) => {
-    navigate(`/products?category=${tagId}`);
+  const handleCategoryClick = (tagId, categoryName) => {
+    const params = new URLSearchParams({
+      category: tagId,
+      categoryName,
+    });
+    navigate(`/products?${params.toString()}`);
   };
 
   return (
@@ -31,7 +35,7 @@ export default function CategorySection() {
         {categories.map((cat) => (
           <div
             key={cat._id}
-            onClick={() => handleCategoryClick(cat.TagId)}
+            onClick={() => handleCategoryClick(cat.TagId, cat.name)}
             className="text-center cursor-pointer transform transition-transform duration-500 hover:scale-105"
           >
             {/* Image */}

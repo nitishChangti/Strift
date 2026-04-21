@@ -29,6 +29,8 @@ import AdminDashboard from "./components/Admin/AdminDashboard.jsx";
 import AdminCategory from "./components/Admin/AdminCategory.jsx";
 import AdminProduct from "./components/Admin/AdminProduct.jsx";
 import AdminCreateProduct from "./components/Admin/AdminCreateProduct.jsx";
+import AdminOrders from "./components/Admin/AdminOrders.jsx";
+import AdminUsers from "./components/Admin/AdminUsers.jsx";
 let router = createBrowserRouter([
   {
     path: "/",
@@ -146,6 +148,8 @@ let router = createBrowserRouter([
       { path: "category", element: <AdminCategory /> },
       { path: "products", element: <AdminProduct /> },
       { path: "products/create", element: <AdminCreateProduct /> },
+      { path: "orders", element: <AdminOrders /> },
+      { path: "users", element: <AdminUsers /> },
     ],
   },
 ]);

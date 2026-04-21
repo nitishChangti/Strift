@@ -14,12 +14,10 @@ import { Category } from "../../models/category.js";
 
 const createProduct = asyncHandler(async (req, res) => {
   try {
-    console.log(
-      "this is a create product controller of a create product route"
-    );
     const {
       productName,
       category,
+      CategoryTagId,
       subCategory,
       TagId,
       gender,
@@ -29,28 +27,13 @@ const createProduct = asyncHandler(async (req, res) => {
       countInStock,
       price,
       discount,
-      productDetails, // Use the rest of the fields dynamically
+      productDetails,
     } = req.body;
-    // Extract images
+    console.log(req.body);
+    console.log(productDetails);
     const mainImageFile = req.files?.image ? req.files.image[0] : null;
     const additionalImageFiles = req.files?.images || [];
-    console.log("req", req.body, mainImageFile, additionalImageFiles);
-    console.log(
-      productName,
-      category,
-      subCategory,
-      gender,
-      description,
-      selectedSizes,
-      selectedColors,
-      countInStock,
-      price,
-      discount,
-      TagId,
-      "product details",
-      productDetails
-    );
-    // Validate required fields
+
     if (
       !productName ||
       !category ||
@@ -60,152 +43,65 @@ const createProduct = asyncHandler(async (req, res) => {
       !countInStock ||
       !price ||
       !discount ||
-      !TagId
+      !TagId ||
+      !CategoryTagId
     ) {
-      return res
-        .status(400)
-        .json({ message: "All required fields must be provided." });
+      return res.status(400).json({ message: "All required fields must be provided." });
     }
+
     const numericCountInStock = Number(countInStock);
-    if (isNaN(numericCountInStock) || numericCountInStock < 0) {
-      return res.status(400).json({ message: "Invalid countInStock value" });
-    }
-
-    const findCategory = await Category.findOne({ name: category });
-    if (!findCategory) {
-      return res.status(404).json({ message: "Category not found" });
-    }
-    console.log("findCategory", findCategory);
-    let subCategoryData;
-    if (!findCategory.subCategories) {
-      console.log("sub cat is not empty");
-      const subCategoryData = findCategory.subCategories.find(
-        (subCat) => subCat.name === subCategory
-      );
-      if (!subCategoryData) {
-        return res
-          .status(404)
-          .json({ message: "SubCategory not found in the specified category" });
-      }
-      console.log(findCategory.TagId, subCategoryData);
-    } else {
-      subCategoryData = {
-        name: "",
-        TagId: "",
-      };
-    }
-
-    const findProduct = await product.findOne({
-      $or: [{ productName }, { TagId: TagId }],
-    });
-    if (findProduct) {
-      return res.status(404).json({ message: "product already exists in db" });
-    }
-    console.log(findProduct);
-    // // const productImage = await uploadOnCloudinary(image);
+ 
     const productImage = await singleUploadOnCloudinary(mainImageFile);
-    console.log("productImage after saved in cloudinary", productImage);
     const productImages = await Promise.all(
-      additionalImageFiles.map((localFilePath) =>
-        uploadOnCloudinary(localFilePath.path)
-      )
+      additionalImageFiles.map((file) => uploadOnCloudinary(file.path))
     );
-    console.log("productImages", productImages[0], productImages);
-    if (!productImage) {
-      return res.status(400).json({ message: "Single image is required." });
-    }
 
-    if (productImages.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "At least one additional image is required." });
-    }
-
-    // // Filter out any null or undefined URLs in case some uploads failed
-    const validProductImages = productImages.filter((url) => url !== null);
-    let mulImages = validProductImages.map((val) => val.url);
-    console.log("mulImages", mulImages);
     const sizesArray = JSON.parse(selectedSizes);
     const colorsArray = JSON.parse(selectedColors);
 
-    if (!Array.isArray(sizesArray) || !Array.isArray(colorsArray)) {
-      return res
-        .status(400)
-        .json({ message: "Sizes and colors must be arrays." });
-    }
-
-    // Create the variants object
     const variants = {
       size: sizesArray,
       color: colorsArray,
-      //   stock:numericCountInStock
     };
 
-    console.log("Variants:", variants);
-
-    // if (!Array.isArray(variants)) {
-    //     console.log('variants is not valid')
-    //     return res.status(400).json({ message: "Invalid variant data format" });
-    // }
-
+    // ✅ FIXED PRODUCT DETAILS PARSING
     let parsedProductDetails = {};
-
-    if (typeof productDetails === "string" && productDetails.trim()) {
-      productDetails.split(",").forEach((pair) => {
-        const [key, value] = pair.split(":");
-        if (key && value) {
-          parsedProductDetails[key.trim()] = value.trim();
-        }
-      });
+    if (productDetails) {
+      try {
+        parsedProductDetails = JSON.parse(productDetails);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid productDetails JSON format" });
+      }
     }
 
     const newProduct = new product({
       name: productName,
       CategoryName: category,
-      CategoryTagId: findCategory.TagId,
-      subCategoryName: subCategoryData.name,
-      subCategoryTagId: subCategoryData.TagId,
-      gender: gender,
-      TagId: TagId,
-      description: description,
-      price: price,
-      discount: discount,
+      CategoryTagId,
+      subCategoryName: subCategory || "",
+      subCategoryTagId: "",
+      gender,
+      TagId,
+      description,
+      price,
+      discount,
       stock: numericCountInStock,
       image: productImage.url,
-      images: mulImages,
-      variants: variants,
+      images: productImages.map((p) => p.url),
+      variants,
       productDetails: parsedProductDetails,
     });
-    await newProduct.save();
-    console.log("product is created in db", newProduct);
-    if (!newProduct) {
-      return res.status(500).json({ message: "Product creation failed." });
-    }
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { product: newProduct },
-          "product created successfully"
-        )
-      );
+    await newProduct.save();
+
+    return res.status(201).json({
+      success: true,
+      product: newProduct,
+      message: "Product created successfully",
+    });
   } catch (err) {
-    if (err instanceof Error) {
-      console.error("Error stack trace:", err.stack); // Log the stack trace for deeper debugging
-    }
-    return res
-      .status(500)
-      .json(
-        new ApiError(
-          500,
-          {},
-          "something went wrong in createproduct api while requesting",
-          false,
-          err
-        )
-      );
+    console.error(err);
+    return res.status(500).json({ message: "Create product failed" });
   }
 });
 

@@ -53,7 +53,8 @@ function Signup() {
       });
 
       if (result?.success === true) {
-        dispatch(authSignUp(result.user));
+        const signedUpUser = result?.data?.user ?? result?.user;
+        dispatch(authSignUp(signedUpUser));
         navigate('/');
       } else {
         setError(result?.message || 'Invalid or expired OTP');

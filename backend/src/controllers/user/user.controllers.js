@@ -8,6 +8,7 @@ import { Category } from "../../models/category.js";
 import Order from "../../models/order.models.js";
 import { otpSender, registerOtpSender } from "../../utils/otpSend.user.js";
 import moment from "moment-timezone";
+import redisClient from "../../utils/redisClient.js";
 
 // ES Module syntax
 import Razorpay from "razorpay";
@@ -114,25 +115,39 @@ const userLogin = asyncHandler(async (req, res) => {
   // ============================
   const user = await User.findOne({ phone: normalizedPhone });
 
-  if (!user || !user.otp.length) {
+  if (!user) {
     return res.status(400).json({
       success: false,
       message: "OTP not found or user invalid"
     });
   }
 
-  const { otpCode, otpExpirationTime } = user.otp[0];
-  const now = new Date();
+  const redisData = await redisClient.get(`otp:${normalizedPhone}`);
+
+  if (!redisData) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP expired or not found"
+    });
+  }
+
+  const otpData = JSON.parse(redisData);
+  const hashedInput = crypto
+    .createHash("sha256")
+    .update(String(otp))
+    .digest("hex");
 
   if (
-    String(otpCode) !== String(otp) ||
-    otpExpirationTime < now
+    otpData.otpCode !== hashedInput ||
+    new Date(otpData.otpExpirationTime) < new Date()
   ) {
     return res.status(400).json({
       success: false,
       message: "Invalid or expired OTP"
     });
   }
+
+  await redisClient.del(`otp:${normalizedPhone}`);
 
   // ============================
   // LOGIN SUCCESS
@@ -150,7 +165,7 @@ const userLogin = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        user,
+        { user },
         "Login successful",
         true
       )
@@ -680,13 +695,20 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
 //     .json(new ApiResponse(200, { productData }, "Products found", true));
 // });
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, search } = req.query;
+  const { category, categoryName, search } = req.query;
 
   const filter = {};
 
-  // Category filter (exact match)
-  if (category) {
+  // Category filter
+  if (category && categoryName) {
+    filter.$or = [
+      { CategoryTagId: category },
+      { CategoryName: { $regex: `^${categoryName}$`, $options: "i" } },
+    ];
+  } else if (category) {
     filter.CategoryTagId = category;
+  } else if (categoryName) {
+    filter.CategoryName = { $regex: `^${categoryName}$`, $options: "i" };
   }
 
   // Search filter (regex)
@@ -1019,6 +1041,7 @@ const productwishlist = asyncHandler(async (req, res) => {
       .json(new ApiResponse(500, "Internal server error", null, false));
   }
 });
+
 const updateWishlist = asyncHandler(async (req, res) => {
   console.log("this is  a controller of update wishlist");
   const { productId } = req.body;
@@ -1144,108 +1167,57 @@ const getUserWishlist = asyncHandler(async (req, res) => {
 });
 
 const addToCartUser = asyncHandler(async (req, res) => {
+  console.log('this is a controller of add to cart user');
   try {
-    console.log("✅ Adding product to cart for user:", req.user._id, req.body);
-    const { productId, quantity, size, expectedDelivery } = req.body;
-
-    // Validate required fields
-    if (!productId || !quantity || !size || !expectedDelivery) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Missing required fields", false));
+    const { productId, quantity = 1, size = "", color = "", expectedDelivery = null } = req.body;
+    console.log(req.body);
+    if (!productId) {
+      return res.status(400).json(new ApiResponse(400, null, "productId is required", false));
     }
 
-    // 1. Get user
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, null, "User not found", false));
+      return res.status(404).json(new ApiResponse(404, null, "User not found", false));
     }
 
-    // 2. Get product
     const productData = await product.findById(productId);
     if (!productData) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, null, "Product not found", false));
+      return res.status(404).json(new ApiResponse(404, null, "Product not found", false));
     }
 
-    // 3. Extract product details
-    const name = productData.name;
-    const tagId = productData.TagId; // exact field name from schema
-    const price = productData.price;
-    const color = productData.color;
-    const image = productData.image;
-    const discount = productData.discount;
-
-    // 4. Check for duplicates
-    const existingProduct = user.cart.find(
+    // Find same variant
+    const index = user.cart.findIndex(
       (item) =>
-        item.productId.equals(productId) &&
-        item.productName.toLowerCase() === name.toLowerCase() &&
-        item.TagId.toLowerCase() === tagId.toLowerCase() &&
-        item.price === price &&
-        item.color.toLowerCase() === color.toLowerCase() &&
-        item.size.toLowerCase() === size.toLowerCase()
+        item.productId.toString() === productId.toString() &&
+        (item.size || "") === (size || "") &&
+        (item.color || "") === (color || "")
     );
 
-    if (existingProduct) {
-      return res
-        .status(400)
-        .json(
-          new ApiResponse(
-            400,
-            null,
-            "Product already exists in the cart with the same data",
-            false
-          )
-        );
+    if (index > -1) {
+      // ✅ increment quantity
+      user.cart[index].quantity += Number(quantity || 1);
+    } else {
+      // ✅ minimal cart object
+      user.cart.push({
+        productId: productData._id,
+        quantity: Number(quantity || 1),
+        size,
+        color,
+        expectedDelivery: expectedDelivery ? new Date(expectedDelivery) : null,
+      });
     }
 
-    // 5. Use expectedDelivery directly from frontend (validated above)
-    const deliveryDate = new Date(expectedDelivery);
-    if (isNaN(deliveryDate.getTime())) {
-      return res
-        .status(400)
-        .json(
-          new ApiResponse(400, null, "Invalid expectedDelivery date", false)
-        );
-    }
-
-    // 6. Add to cart
-    user.cart.push({
-      productId,
-      productName: name,
-      price,
-      size,
-      quantity,
-      color,
-      TagId: tagId,
-      image,
-      discount,
-      expectedDelivery: deliveryDate, // ✅ Directly from frontend
-    });
-
-    await user.save();
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          user.cart,
-          "Product added to cart successfully",
-          true
-        )
-      );
+    await user.save();  
+    console.log('cart add in user',user);
+    return res.status(200).json(
+      new ApiResponse(200, { cart: user.cart }, "Product added to cart successfully", true)
+    );
   } catch (error) {
-    console.error("❌ Error in adding to cart:", error);
-    return res
-      .status(500)
-      .json(new ApiResponse(500, null, "Internal server error", false));
+    console.error("❌ addToCartUser error:", error);
+    return res.status(500).json(new ApiResponse(500, null, "Internal server error", false));
   }
 });
+
 
 const updateCartUser = asyncHandler(async (req, res) => {
   console.log("this is a controller of update cart user", req.body);

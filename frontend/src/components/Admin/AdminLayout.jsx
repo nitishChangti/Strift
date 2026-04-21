@@ -1,16 +1,19 @@
-import { useSelector } from "react-redux";
-import { Navigate, Outlet } from "react-router-dom";
+// components/Admin/AdminLayout.jsx
+import { Outlet } from "react-router-dom";
+import AdminSidebar from "./AdminSideBar";
 
-const AdminAuthLayout = ({ children }) => {
-  const isAuthenticated = useSelector(
-    (state) => state.auth.status
+const AdminLayout = () => {
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      {/* LEFT SIDEBAR - ALWAYS VISIBLE */}
+      <AdminSidebar />
+
+      {/* RIGHT CONTENT */}
+      <main className="flex-1 p-6 overflow-y-auto">
+        <Outlet />
+      </main>
+    </div>
   );
-
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  return children ? children : <Outlet />;
 };
 
-export default AdminAuthLayout;
+export default AdminLayout;
