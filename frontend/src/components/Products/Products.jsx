@@ -21,20 +21,19 @@ function Products() {
   const [cart, setCart] = useState([]);
 
   const searchQuery = searchParams.get("search") || "";
-  const category = searchParams.get("category");
   const categoryName = searchParams.get("categoryName") || "";
 
   const products = useSelector((state) => state.product.filteredList);
 
   // Fetch products
   useEffect(() => {
-    if (!searchQuery && !category && !categoryName) return;
+    if (!searchQuery && !categoryName) return;
 
     (async () => {
       try {
         const res = await userProductService.fetchProducts({
           search: searchQuery,
-          category,
+          category: "",
           categoryName,
         });
         dispatch(setList(res.productData || []));
@@ -45,7 +44,7 @@ function Products() {
         dispatch(setSelected(null));
       }
     })();
-  }, [searchQuery, category, categoryName, dispatch]);
+  }, [searchQuery, categoryName, dispatch]);
 
   // Load wishlist & cart on mount/auth change
  useEffect(() => {

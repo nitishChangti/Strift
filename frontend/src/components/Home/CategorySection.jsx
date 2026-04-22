@@ -23,7 +23,6 @@ export default function CategorySection() {
 
   const handleCategoryClick = (tagId, categoryName) => {
     const params = new URLSearchParams({
-      category: tagId,
       categoryName,
     });
     navigate(`/products?${params.toString()}`);
