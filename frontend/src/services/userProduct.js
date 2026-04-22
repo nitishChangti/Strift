@@ -17,10 +17,9 @@ export class UserProductService {
   async fetchHomeProducts(limit = 12) {
     try {
       const response = await axios.get(`${this.baseUrl}/products/home`, {
-        params: { limit },
-        headers: {
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache",
+        params: {
+          limit,
+          _t: Date.now(),
         },
       });
       return response.data;
@@ -37,10 +36,7 @@ export class UserProductService {
           search,
           category,
           categoryName,
-        },
-        headers: {
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache",
+          _t: Date.now(),
         },
       });
 
@@ -54,10 +50,9 @@ export class UserProductService {
   async fetchProductDetails(id) {
     try {
       const response = await axios.get(`${this.baseUrl}/productdetail`, {
-        params: { id: id },
-        headers: {
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache",
+        params: {
+          id: id,
+          _t: Date.now(),
         },
       });
       return response.data.data;
