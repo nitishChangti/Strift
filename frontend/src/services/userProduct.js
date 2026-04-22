@@ -18,6 +18,10 @@ export class UserProductService {
     try {
       const response = await axios.get(`${this.baseUrl}/products/home`, {
         params: { limit },
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
       });
       return response.data;
     } catch (err) {
@@ -34,6 +38,10 @@ export class UserProductService {
           category,
           categoryName,
         },
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
       });
 
       return response.data.data;
@@ -47,6 +55,10 @@ export class UserProductService {
     try {
       const response = await axios.get(`${this.baseUrl}/productdetail`, {
         params: { id: id },
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+        },
       });
       return response.data.data;
     } catch (err) {
