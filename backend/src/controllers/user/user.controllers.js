@@ -694,8 +694,12 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
 //     .status(200)
 //     .json(new ApiResponse(200, { productData }, "Products found", true));
 // });
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, categoryName, search } = req.query;
+  const category = req.query.category?.trim();
+  const categoryName = req.query.categoryName?.trim();
+  const search = req.query.search?.trim();
 
   const filter = {};
 
@@ -703,17 +707,17 @@ const getProducts = asyncHandler(async (req, res) => {
   if (category && categoryName) {
     filter.$or = [
       { CategoryTagId: category },
-      { CategoryName: { $regex: `^${categoryName}$`, $options: "i" } },
+      { CategoryName: { $regex: `^${escapeRegex(categoryName)}$`, $options: "i" } },
     ];
   } else if (category) {
     filter.CategoryTagId = category;
   } else if (categoryName) {
-    filter.CategoryName = { $regex: `^${categoryName}$`, $options: "i" };
+    filter.CategoryName = { $regex: `^${escapeRegex(categoryName)}$`, $options: "i" };
   }
 
   // Search filter (regex)
   if (search) {
-    filter.name = { $regex: search, $options: "i" };
+    filter.name = { $regex: escapeRegex(search), $options: "i" };
   }
 
   const productData = await product.find(filter);

@@ -22,9 +22,11 @@ export default function CategorySection() {
   }, []);
 
   const handleCategoryClick = (tagId, categoryName) => {
-    const params = new URLSearchParams({
-      categoryName,
-    });
+    const params = new URLSearchParams();
+
+    if (tagId) params.set("category", tagId);
+    if (categoryName) params.set("categoryName", categoryName);
+
     navigate(`/products?${params.toString()}`);
   };
 
