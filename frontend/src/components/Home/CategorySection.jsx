@@ -7,6 +7,7 @@ export default function CategorySection() {
   const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
 
+  
   useEffect(() => {
     const fetchCategories = async () => {
       try {
