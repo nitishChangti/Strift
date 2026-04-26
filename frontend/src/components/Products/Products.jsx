@@ -10,7 +10,7 @@ import { setList, setQuery, setSelected } from "../../store/productSlice";
 
 function Products() {
   const user = useSelector((state) => state.auth.userData);
-  console.log(user);
+
   const isAuthenticated = useSelector((state) => state.auth.status);
 
   const [searchParams] = useSearchParams();
@@ -25,7 +25,9 @@ function Products() {
   const categoryName = searchParams.get("categoryName") || "";
 
   const products = useSelector((state) => state.product.filteredList);
-
+  console.log('search query',searchQuery);
+  console.log('category',category);
+  console.log('categoryName',categoryName);
   // Fetch products
   useEffect(() => {
     if (!searchQuery && !category && !categoryName) return;
@@ -37,6 +39,7 @@ function Products() {
           category,
           categoryName,
         });
+        console.log('res in products',res);
         dispatch(setList(res.productData || []));
         dispatch(setQuery(searchQuery));
         dispatch(setSelected(res.productData?.[0] || null));

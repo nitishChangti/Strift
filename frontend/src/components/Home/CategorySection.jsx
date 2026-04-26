@@ -11,7 +11,7 @@ export default function CategorySection() {
     const fetchCategories = async () => {
       try {
         const res = await authService.getAllCategories();
-        console.log('res',res);
+        console.log(`categories data in home :`,res);
         setCategories(res.data);
       } catch (error) {
         console.error("Failed to load categories", error);
@@ -23,10 +23,10 @@ export default function CategorySection() {
 
   const handleCategoryClick = (tagId, categoryName) => {
     const params = new URLSearchParams();
-
+    console.log(`TagId : ${tagId} \n categoryName : ${categoryName}`);
     if (tagId) params.set("category", tagId);
     if (categoryName) params.set("categoryName", categoryName);
-
+    console.log('params are :', params.toString());
     navigate(`/products?${params.toString()}`);
   };
 

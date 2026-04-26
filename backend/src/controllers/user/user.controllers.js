@@ -697,10 +697,13 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getProducts = asyncHandler(async (req, res) => {
+  console.log('this fetch products controller for user');
   const category = req.query.category?.trim();
   const categoryName = req.query.categoryName?.trim();
   const search = req.query.search?.trim();
-
+console.log('category',category);
+console.log('categoryName',categoryName);
+console.log('search',search);
   const filter = {};
 
   // Category filter
@@ -719,9 +722,9 @@ const getProducts = asyncHandler(async (req, res) => {
   if (search) {
     filter.name = { $regex: escapeRegex(search), $options: "i" };
   }
-
+  console.log('filter',filter);
   const productData = await product.find(filter);
-
+  console.log('product data',productData);
   return res.status(200).json(
     new ApiResponse(
       200,
